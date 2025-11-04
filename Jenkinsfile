@@ -11,7 +11,7 @@ pipeline {
     stage("Checkout") { steps { checkout scm } }
 
     stage("Build Image") {
-      steps { sh "docker build -t ${IMAGE}:${BUILD_NUMBER} -t ${IMAGE}:latest ." }
+      steps { sh "DOCKER_BUILDKIT=1 docker build --pull --cache-from ${IMAGE}:latest -t ${IMAGE}:${BUILD_NUMBER} -t ${IMAGE}:latest ." }
     }
 
     stage("Login & Push") {
