@@ -33,7 +33,6 @@ pipeline {
           echo "CURRENT=${CURRENT:-none}  IDLE=$IDLE  PORT=$PORT"
           docker rm -f app-$IDLE || true
           docker run -d --name app-$IDLE --net jenkins-net -p ${PORT}:3000 -e COLOR=$COLOR ${IMAGE}:latest
-          echo IDLE=$IDLE > .idle_env
         '''
       }
     }
@@ -42,7 +41,8 @@ pipeline {
       steps {
         sh '''
           set -eux
-          . .idle_env
+          CURRENT=$(docker exec router sh -lc 'grep -o "app-[a-z]*" /etc/nginx/conf.d/default.conf 2>/dev/null | head -n1 || true')
+          if [ "$CURRENT" = "app-blue" ]; then IDLE=green; else IDLE=blue; fi
           docker run --rm --net jenkins-net curlimages/curl:8.8.0 -fsS http://app-${IDLE}:3000/ | head -c 200
         '''
       }
@@ -52,7 +52,8 @@ pipeline {
       steps {
         sh '''
           set -eux
-          . .idle_env
+          CURRENT=$(docker exec router sh -lc 'grep -o "app-[a-z]*" /etc/nginx/conf.d/default.conf 2>/dev/null | head -n1 || true')
+          if [ "$CURRENT" = "app-blue" ]; then IDLE=green; else IDLE=blue; fi
           docker exec router sh -lc "sed -i 's/app-blue/app-${IDLE}/g; s/app-green/app-${IDLE}/g' /etc/nginx/conf.d/default.conf && nginx -s reload"
         '''
       }
